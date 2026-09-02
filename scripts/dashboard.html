@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VenTX-100K — Live Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Text:wght@400;500;700&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500;700&display=swap">
+<style>
+:root{
+  --ground:#17181A; --surface:#292A2D; --surface-2:#35363A; --surface-3:#3C3F42;
+  --ink:#E8EAED; --ink-2:#C4C7C5; --muted:#9AA0A6; --rule:#3C4043; --rule-2:#33353A;
+  --primary:#8AB4F8; --primary-dim:#AECBFA; --primary-bg:#25334A;
+  --accent:#FDD663; --accent-bg:#3D3421;
+  --good:#81C995; --good-bg:#1E3829; --warn:#FDD663; --bad:#F28B82; --bad-bg:#3C2426;
+  --meter-track:#3C4043; --chip:#3C3F42; --chip-ink:#C4C7C5;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,.45);
+  --shadow:0 1px 2px 0 rgba(0,0,0,.45), 0 1px 3px 1px rgba(0,0,0,.3);
+  --shadow-lg:0 1px 3px 0 rgba(0,0,0,.5), 0 3px 10px 2px rgba(0,0,0,.4);
+  --shadow-hover:0 2px 4px 0 rgba(0,0,0,.55), 0 5px 16px 4px rgba(0,0,0,.4);
+  --hero-grad:linear-gradient(155deg, var(--primary-bg) 0%, var(--surface) 60%);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0; background:var(--ground); color:var(--ink);
+  font-family:"Google Sans Text","Roboto","Segoe UI",-apple-system,Helvetica,Arial,sans-serif;
+  font-size:14px; line-height:1.5;}
+code,.mono{font-family:"Roboto Mono",ui-monospace,Consolas,monospace; font-variant-numeric:tabular-nums}
+.wrap{max-width:1180px; margin:0 auto; padding:22px 20px 90px}
+h1,h2,h3{margin:0; text-wrap:balance; letter-spacing:-.01em}
+.icon{width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex:none; display:block}
+
+.topbar{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:20px}
+.brand{display:flex; align-items:center; gap:14px}
+.mark{display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:3px; width:26px; height:26px; flex:none}
+.mark span{border-radius:3px}
+.mark span:nth-child(1){background:var(--primary)}
+.mark span:nth-child(2){background:var(--bad)}
+.mark span:nth-child(3){background:var(--accent)}
+.mark span:nth-child(4){background:var(--good)}
+h1{font-size:20px; font-weight:500; color:var(--ink)}
+.h1-dim{font-weight:400; color:var(--muted); font-size:16px; margin-left:8px}
+.sub{font-size:12px; color:var(--muted); margin-top:2px; font-family:"Roboto Mono",monospace}
+.status-pill{display:flex; align-items:center; gap:8px; font-family:"Roboto Mono",monospace;
+  font-size:12.5px; padding:7px 14px; border-radius:999px; background:var(--surface);
+  border:1px solid var(--rule); box-shadow:var(--shadow);}
+.dot{width:8px; height:8px; border-radius:50%; background:var(--good); flex:none; box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 25%,transparent)}
+.dot.pulse{animation:pulse 1.6s ease-in-out infinite}
+.dot.stalled{background:var(--bad); box-shadow:0 0 0 3px color-mix(in srgb,var(--bad) 25%,transparent)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion: reduce){.dot.pulse{animation:none}}
+
+.banner-card{background:var(--hero-grad); border:1px solid var(--rule); border-radius:12px;
+  box-shadow:var(--shadow-lg); padding:18px 24px; margin-bottom:20px; position:relative; overflow:hidden;}
+.banner-card::before{content:''; position:absolute; top:0; left:0; right:0; height:4px;
+  background:linear-gradient(90deg, var(--primary) 0%, var(--primary) 25%, var(--good) 25%, var(--good) 50%,
+    var(--accent) 50%, var(--accent) 75%, var(--bad) 75%, var(--bad) 100%);}
+.banner-row{display:flex; flex-wrap:wrap; gap:22px; font-family:"Roboto Mono",monospace; font-size:12.5px; color:var(--ink-2)}
+.banner-row b{color:var(--ink); font-weight:600}
+
+.kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:20px}
+.kpi{background:var(--surface); border:1px solid var(--rule); border-radius:8px; box-shadow:var(--shadow-sm);
+  padding:14px 16px 10px; transition:box-shadow .18s ease, transform .18s ease; cursor:default;}
+.kpi:hover{box-shadow:var(--shadow-hover); transform:translateY(-1px)}
+.kpi-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:2px}
+.kpi .k{display:flex; align-items:center; gap:6px; font-family:"Roboto Mono",monospace; font-size:10.5px; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--muted)}
+.kpi .k .icon{width:14px; height:14px; color:var(--muted)}
+.kpi .v{font-family:"Roboto Mono",monospace; font-weight:600; font-size:24px; margin-top:2px; color:var(--ink)}
+.kpi .u{font-size:11px; color:var(--muted); margin-top:1px}
+.kpi .spark{margin-top:6px; height:28px}
+
+.progress-wrap{background:var(--surface); border:1px solid var(--rule); border-radius:8px;
+  padding:16px 18px; margin-bottom:20px; box-shadow:var(--shadow)}
+.progress-head{display:flex; justify-content:space-between; align-items:center; font-size:12.5px; color:var(--ink-2); margin-bottom:8px}
+.progress-head .lft{display:flex; align-items:center; gap:6px; font-weight:500}
+.progress-head .mono{color:var(--muted)}
+.track{position:relative; height:14px; background:var(--meter-track); border-radius:7px; overflow:hidden}
+.fill{height:100%; background:linear-gradient(90deg,var(--primary),color-mix(in srgb,var(--primary) 70%,var(--accent))); border-radius:7px 0 0 7px; transition:width .5s cubic-bezier(.4,0,.2,1)}
+.marker{position:absolute; top:0; bottom:0; width:2px; background:var(--ink-2); opacity:.35}
+.marker-label{position:absolute; top:16px; font-size:10px; font-family:"Roboto Mono",monospace; color:var(--muted); transform:translateX(-50%)}
+.phase-timeline{display:flex; margin-top:18px; font-family:"Roboto Mono",monospace; font-size:10.5px}
+.phase-seg{flex:1; text-align:center; padding:6px 4px; border-bottom:3px solid var(--rule); color:var(--muted); transition:color .3s ease, border-color .3s ease}
+.phase-seg.active{color:var(--ink); font-weight:600}
+.phase-seg.warmup.active{border-color:var(--muted)}
+.phase-seg.stable.active{border-color:var(--primary)}
+.phase-seg.decay.active{border-color:var(--accent)}
+
+.grid2{display:grid; grid-template-columns:1.6fr 1fr; gap:18px}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}}
+.panel{background:var(--surface); border:1px solid var(--rule); border-radius:8px; box-shadow:var(--shadow);
+  padding:18px 20px; margin-bottom:18px; transition:box-shadow .18s ease}
+.panel:hover{box-shadow:var(--shadow-hover)}
+.panel-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:4px}
+.panel h2{display:flex; align-items:center; gap:8px; font-size:14px; font-weight:500; color:var(--ink)}
+.panel h2 .icon{width:17px; height:17px; color:var(--primary)}
+.panel .desc{font-size:12.5px; color:var(--muted); margin-bottom:14px; line-height:1.5}
+.legend{display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap}
+.lg{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-2); padding:4px 10px 4px 8px;
+  border-radius:999px; border:1px solid var(--rule); cursor:pointer; user-select:none; background:var(--surface);
+  transition:background .15s ease, opacity .15s ease}
+.lg:hover{background:var(--surface-2)}
+.lg.off{opacity:.4}
+.sw{width:10px; height:10px; border-radius:3px; flex:none}
+svg text{font-family:"Roboto Mono",monospace}
+.chart-wrap{position:relative}
+.chart-wrap svg.chart-svg{width:100%; height:auto; display:block; touch-action:none; cursor:crosshair}
+.zoom-bar{position:absolute; top:0; right:0; display:flex; gap:4px; z-index:5}
+.zoom-btn{display:flex; align-items:center; gap:4px; font-family:"Roboto Mono",monospace; font-size:10.5px;
+  padding:4px 9px; border-radius:6px; border:1px solid var(--rule); background:var(--surface);
+  color:var(--ink-2); cursor:pointer; opacity:0; pointer-events:none; transition:opacity .15s ease, background .15s ease;}
+.zoom-btn .icon{width:12px; height:12px}
+.zoom-btn:hover{background:var(--surface-2); color:var(--ink)}
+.zoom-btn.visible{opacity:1; pointer-events:auto}
+.zoom-hint{position:absolute; bottom:6px; right:8px; font-family:"Roboto Mono",monospace; font-size:10px; color:var(--muted); opacity:.7; pointer-events:none}
+.zoom-hint.hide{display:none}
+.chart-tooltip{position:absolute; pointer-events:none; background:var(--surface-3); color:var(--ink); border:1px solid var(--rule); border-radius:6px;
+  padding:8px 10px; font-family:"Roboto Mono",monospace; font-size:11px; line-height:1.6; box-shadow:var(--shadow-hover);
+  opacity:0; transition:opacity .1s ease; z-index:10; white-space:nowrap;}
+.chart-tooltip.show{opacity:1}
+.chart-tooltip .row{display:flex; align-items:center; gap:6px}
+.chart-tooltip .dot2{width:7px; height:7px; border-radius:50%; flex:none}
+.chart-tooltip .hdr{color:#9AA0A6; font-size:10px; margin-bottom:3px}
+
+table{border-collapse:collapse; width:100%; font-size:12.5px}
+th,td{padding:8px 10px; text-align:left; border-bottom:1px solid var(--rule-2); white-space:nowrap}
+th{font-family:"Roboto",sans-serif; font-size:11px; letter-spacing:.02em; color:var(--muted); font-weight:500;
+  background:var(--surface-2); border-bottom:1px solid var(--rule)}
+td.n{font-family:"Roboto Mono",monospace; text-align:right; font-variant-numeric:tabular-nums}
+.chip{display:inline-flex; align-items:center; gap:4px; font-family:"Roboto Mono",monospace; font-size:10.5px; font-weight:500;
+  padding:3px 9px; border-radius:999px; background:var(--chip); color:var(--chip-ink)}
+.chip.phase-warmup{background:color-mix(in srgb, var(--muted) 20%, var(--chip)); color:var(--ink-2)}
+.chip.phase-stable{background:color-mix(in srgb, var(--primary) 18%, var(--chip)); color:var(--primary)}
+.chip.phase-decay{background:color-mix(in srgb, var(--accent) 18%, var(--chip)); color:var(--accent)}
+
+.events{font-family:"Roboto Mono",monospace; font-size:11.5px; color:var(--ink-2);
+  max-height:200px; overflow-y:auto; display:flex; flex-direction:column-reverse; gap:2px}
+.events .ev{padding:5px 0; border-bottom:1px solid var(--rule-2)}
+.events .ev:last-child{border-bottom:none}
+.empty{display:flex; flex-direction:column; align-items:center; gap:8px; font-size:12.5px; color:var(--muted);
+  padding:28px 10px; text-align:center}
+.stall-banner{display:none; align-items:center; gap:10px; background:var(--bad-bg); border:1px solid var(--bad);
+  color:var(--bad); border-radius:8px; padding:12px 16px; margin-bottom:18px; font-size:13px; font-family:"Roboto Mono",monospace}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <div class="mark"><span></span><span></span><span></span><span></span></div>
+      <div>
+        <h1>VenTX-100K <span class="h1-dim">base pretrain</span></h1>
+        <div class="sub" id="runSub">run: — | last poll: —</div>
+      </div>
+    </div>
+    <div class="status-pill"><span class="dot pulse" id="statusDot"></span><span id="statusText">connecting…</span></div>
+  </div>
+
+  <div id="stallBanner" class="stall-banner">training log has not updated in a while — the process may be stopped.</div>
+
+  <div class="banner-card">
+    <div class="banner-row">
+      <span><b id="bParams">—</b> params</span>
+      <span>seq_len <b id="bSeqLen">—</b></span>
+      <span>rope_theta <b id="bTheta">—</b></span>
+      <span><b id="bFlops">—</b> GFLOP/token</span>
+      <span>226.1M, 14 layers, d_model=960, native dense attention — trained from scratch</span>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-top"><div class="k">Step</div></div><div class="v" id="kStep">—</div><div class="u" id="kStepPct">of —</div></div>
+    <div class="kpi"><div class="kpi-top"><div class="k">Tokens</div></div><div class="v" id="kTokens">—</div><div class="u" id="kTokensPct">of —</div></div>
+    <div class="kpi"><div class="kpi-top"><div class="k">Throughput</div></div><div class="v" id="kTps">—</div><div class="u">tok/s avg</div><svg class="spark" id="sparkTps" width="100%" viewBox="0 0 200 28" preserveAspectRatio="none"></svg></div>
+    <div class="kpi"><div class="kpi-top"><div class="k">Train loss</div></div><div class="v" id="kLoss">—</div><div class="u" id="kPpl">ppl —</div><svg class="spark" id="sparkLoss" width="100%" viewBox="0 0 200 28" preserveAspectRatio="none"></svg></div>
+    <div class="kpi"><div class="kpi-top"><div class="k">Val loss</div></div><div class="v" id="kValLoss">—</div><div class="u" id="kValAt">—</div></div>
+    <div class="kpi"><div class="kpi-top"><div class="k">VRAM</div></div><div class="v" id="kVram">—</div><div class="u" id="kMfu">MFU —</div></div>
+    <div class="kpi"><div class="kpi-top"><div class="k">ETA</div></div><div class="v" id="kEta">—</div><div class="u" id="kPhase">—</div></div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-head">
+      <span class="lft">Token budget</span>
+      <span class="mono" id="progressLabel">— / —</span>
+    </div>
+    <div class="track">
+      <div class="fill" id="progressFill" style="width:0%"></div>
+      <div class="marker" id="decayMarker" style="left:80%"></div>
+    </div>
+    <div style="position:relative"><div class="marker-label" style="left:80%">decay starts</div></div>
+    <div class="phase-timeline">
+      <div class="phase-seg warmup" id="segWarmup">warmup</div>
+      <div class="phase-seg stable" id="segStable">stable</div>
+      <div class="phase-seg decay" id="segDecay">decay</div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <div class="panel">
+        <div class="panel-head"><h2>Loss trajectory</h2></div>
+        <div class="legend" id="lossLegend"></div>
+        <div class="chart-wrap">
+          <svg id="lossChart" class="chart-svg" viewBox="0 0 900 320" preserveAspectRatio="none"></svg>
+          <div class="chart-tooltip" id="lossTooltip"></div>
+          <div class="zoom-bar"><button class="zoom-btn" id="lossZoomReset" type="button">reset zoom</button></div>
+          <div class="zoom-hint" id="lossZoomHint">drag to zoom · scroll to zoom · dblclick to reset</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="panel">
+        <div class="panel-head"><h2>Checkpoints</h2></div>
+        <table id="ckptTable"><thead><tr><th>Step</th><th>Size</th><th>Saved</th></tr></thead><tbody></tbody></table>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Recent events</h2></div>
+        <div class="events" id="events"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function $(id){ return document.getElementById(id); }
+function fmtNum(n){ if (n==null) return '—'; return Math.round(n).toLocaleString('en-US'); }
+function fmtB(n){ if (n==null) return '—'; if (n>=1e9) return (n/1e9).toFixed(2)+'B'; if (n>=1e6) return (n/1e6).toFixed(1)+'M'; if (n>=1e3) return (n/1e3).toFixed(1)+'K'; return String(n); }
+function fmtDur(s){
+  if (s==null || !isFinite(s)) return '—';
+  const days = Math.floor(s/86400), hrs = Math.floor((s%86400)/3600), mins = Math.floor((s%3600)/60);
+  if (days>0) return `${days}d ${hrs}h`;
+  if (hrs>0) return `${hrs}h ${mins}m`;
+  return `${mins}m`;
+}
+function getCss(varName){ return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || '#000'; }
+
+function catmullRomPath(pts) {
+  if (pts.length < 2) return '';
+  if (pts.length === 2) return `M${pts[0][0]},${pts[0][1]} L${pts[1][0]},${pts[1][1]}`;
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i === 0 ? 0 : i - 1], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2 < pts.length ? i + 2 : i + 1];
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C${c1x},${c1y} ${c2x},${c2y} ${p2[0]},${p2[1]}`;
+  }
+  return d;
+}
+
+let chartIdSeq = 0;
+function makeChart(opts) {
+  const svg = $(opts.svgId), tip = $(opts.tooltipId), legendEl = $(opts.legendId);
+  const resetBtn = opts.resetBtnId ? $(opts.resetBtnId) : null;
+  const hintEl = opts.hintId ? $(opts.hintId) : null;
+  const id = 'c' + (chartIdSeq++);
+  const hidden = new Set();
+  let zoomDomain = null, drag = null;
+
+  if (legendEl) {
+    legendEl.innerHTML = opts.series.map(s => `<span class="lg" data-k="${s.key}">
+      <span class="sw" style="background:${s.dotsOnly ? s.color : (s.dashed ? 'none' : s.color)};${s.dashed ? `border-top:2px dashed ${s.color}` : ''}${s.dotsOnly ? 'border-radius:50%' : ''}"></span>${s.label}</span>`).join('');
+    legendEl.querySelectorAll('.lg').forEach(el => {
+      el.addEventListener('click', () => {
+        const k = el.dataset.k;
+        if (hidden.has(k)) hidden.delete(k); else hidden.add(k);
+        el.classList.toggle('off');
+        render();
+      });
+    });
+  }
+
+  function fullExtent() {
+    const allPts = opts.series.flatMap(s => s.points);
+    if (!allPts.length) return null;
+    const xs = allPts.map(p => p.x);
+    return [Math.min(...xs), Math.max(...xs, Math.min(...xs) + 1)];
+  }
+  function resetZoom() { zoomDomain = null; render(); }
+  if (resetBtn) resetBtn.addEventListener('click', resetZoom);
+
+  function render() {
+    const { W, H, padL, padR, padT, padB } = opts;
+    const visible = opts.series.filter(s => !hidden.has(s.key));
+    const full = fullExtent();
+    if (!full) { svg.innerHTML = `<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="var(--muted)" font-size="13">waiting for data…</text>`; return; }
+
+    const [fullXMin, fullXMax] = full;
+    if (zoomDomain) {
+      zoomDomain[0] = Math.max(fullXMin, zoomDomain[0]);
+      zoomDomain[1] = Math.min(fullXMax, zoomDomain[1]);
+      if (zoomDomain[1] - zoomDomain[0] < (fullXMax - fullXMin) * 0.01) zoomDomain = null;
+    }
+    const [xMin, xMax] = zoomDomain || [fullXMin, fullXMax];
+
+    const ptsInView = visible.flatMap(s => s.points.filter(p => p.x >= xMin && p.x <= xMax));
+    const ys = (ptsInView.length ? ptsInView : visible.flatMap(s => s.points)).map(p => p.y);
+    const yMin = opts.yDomain ? opts.yDomain[0] : Math.min(...ys) * 0.95;
+    const yMax = opts.yDomain ? opts.yDomain[1] : Math.max(...ys) * 1.05;
+    const X = x => padL + (x - xMin) / Math.max(1e-9, xMax - xMin) * (W - padL - padR);
+    const Y = y => H - padB - (y - yMin) / Math.max(1e-9, yMax - yMin) * (H - padT - padB);
+
+    if (resetBtn) resetBtn.classList.toggle('visible', !!zoomDomain);
+    if (hintEl) hintEl.classList.toggle('hide', !!zoomDomain);
+
+    let defs = '<defs>';
+    let grid = '';
+    for (let i = 0; i <= 4; i++) {
+      const yv = yMin + (yMax - yMin) * i / 4;
+      grid += `<line x1="${padL}" y1="${Y(yv)}" x2="${W-padR}" y2="${Y(yv)}" stroke="var(--rule-2)" stroke-width="1"/>`;
+      grid += `<text x="${padL-8}" y="${Y(yv)+4}" text-anchor="end" font-size="10" fill="var(--muted)">${opts.yTick ? opts.yTick(yv) : yv.toFixed(1)}</text>`;
+    }
+    grid += `<line x1="${padL}" y1="${H-padB}" x2="${W-padR}" y2="${H-padB}" stroke="var(--rule)" stroke-width="1"/>`;
+    grid += `<text x="${padL}" y="${H-8}" font-size="10" fill="var(--muted)">${opts.xTick ? opts.xTick(xMin) : xMin}</text>`;
+    grid += `<text x="${W-padR}" y="${H-8}" text-anchor="end" font-size="10" fill="var(--muted)">${opts.xTick ? opts.xTick(xMax) : xMax}</text>`;
+
+    let seriesSvg = '';
+    visible.forEach((s, si) => {
+      const inWindow = s.points.filter((p,i) => {
+        if (p.x >= xMin && p.x <= xMax) return true;
+        const prev = s.points[i-1], next = s.points[i+1];
+        return (prev && prev.x < xMin && p.x >= xMin) || (next && next.x > xMax && p.x <= xMax);
+      });
+      const pts = inWindow.map(p => [X(p.x), Y(p.y)]);
+      if (pts.length < 1) return;
+      if (s.dotsOnly) {
+        seriesSvg += pts.map(p => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="4.5" fill="${s.color}" stroke="var(--surface)" stroke-width="1.5"/>`).join('');
+        return;
+      }
+      const path = catmullRomPath(pts);
+      if (s.area && pts.length > 1) {
+        const gid = `${id}-grad-${si}`;
+        defs += `<linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${s.color}" stop-opacity="0.22"/>
+          <stop offset="100%" stop-color="${s.color}" stop-opacity="0"/>
+        </linearGradient>`;
+        const areaPath = `${path} L${pts[pts.length-1][0]},${H-padB} L${pts[0][0]},${H-padB} Z`;
+        seriesSvg += `<path d="${areaPath}" fill="url(#${gid})" stroke="none"/>`;
+      }
+      seriesSvg += `<path d="${path}" fill="none" stroke="${s.color}" stroke-width="2"
+        ${s.dashed ? 'stroke-dasharray="5,4"' : ''} stroke-linejoin="round" stroke-linecap="round"/>`;
+      if (!s.dashed) {
+        const last = pts[pts.length - 1];
+        seriesSvg += `<circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3.5" fill="${s.color}"/>`;
+      }
+    });
+
+    const hitRect = `<rect x="${padL}" y="${padT}" width="${W-padL-padR}" height="${H-padT-padB}" fill="transparent" class="hit"/>`;
+    defs += '</defs>';
+    svg.innerHTML = defs + grid + seriesSvg + hitRect +
+      `<line class="xhair" x1="0" y1="${padT}" x2="0" y2="${H-padB}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3,3" opacity="0"/>` +
+      `<rect class="brush" x="0" y="${padT}" width="0" height="${H-padT-padB}" fill="var(--primary)" opacity="0" />`;
+
+    const hit = svg.querySelector('.hit');
+    const xhair = svg.querySelector('.xhair');
+    const brush = svg.querySelector('.brush');
+
+    function pxToData(clientX) {
+      const rect = svg.getBoundingClientRect();
+      const px = (clientX - rect.left) / rect.width * W;
+      return xMin + (px - padL) / (W - padL - padR) * (xMax - xMin);
+    }
+    function showCrosshair(clientX) {
+      const xVal = pxToData(clientX);
+      let nearest = null, nearestD = Infinity;
+      visible.forEach(s => s.points.forEach(p => {
+        const d = Math.abs(p.x - xVal);
+        if (d < nearestD) { nearestD = d; nearest = p.x; }
+      }));
+      if (nearest == null) return;
+      xhair.setAttribute('x1', X(nearest)); xhair.setAttribute('x2', X(nearest)); xhair.setAttribute('opacity', '1');
+      let rows = '';
+      visible.forEach(s => {
+        const p = s.points.find(pp => pp.x === nearest) || s.points.reduce((a,b) => Math.abs(b.x-nearest)<Math.abs(a.x-nearest)?b:a);
+        rows += `<div class="row"><span class="dot2" style="background:${s.color}"></span>${s.label}: <b>${p.fmt ? p.fmt(p.y) : p.y.toFixed(2)}</b></div>`;
+      });
+      const rect = svg.getBoundingClientRect();
+      tip.innerHTML = `<div class="hdr">${opts.xTick ? opts.xTick(nearest) : nearest}</div>${rows}`;
+      tip.classList.add('show');
+      const tipX = Math.min(rect.width - 170, Math.max(4, (X(nearest)/W)*rect.width + 12));
+      tip.style.left = tipX + 'px';
+      tip.style.top = '6px';
+    }
+    function hideCrosshair() { xhair.setAttribute('opacity','0'); tip.classList.remove('show'); }
+
+    hit.addEventListener('pointerdown', e => {
+      hit.setPointerCapture(e.pointerId);
+      const rect = svg.getBoundingClientRect();
+      drag = { startClientX: e.clientX, startPx: (e.clientX - rect.left) / rect.width * W };
+      hideCrosshair();
+    });
+    hit.addEventListener('pointermove', e => {
+      if (drag) {
+        const rect = svg.getBoundingClientRect();
+        const curPx = (e.clientX - rect.left) / rect.width * W;
+        const x0 = Math.min(drag.startPx, curPx), x1 = Math.max(drag.startPx, curPx);
+        brush.setAttribute('x', x0); brush.setAttribute('width', Math.max(0, x1 - x0)); brush.setAttribute('opacity', '0.12');
+      } else { showCrosshair(e.clientX); }
+    });
+    hit.addEventListener('pointerup', e => {
+      if (drag) {
+        const rect = svg.getBoundingClientRect();
+        const curPx = (e.clientX - rect.left) / rect.width * W;
+        const dxPx = Math.abs(curPx - drag.startPx);
+        brush.setAttribute('opacity', '0');
+        if (dxPx > 8) {
+          const a = pxToData(Math.min(drag.startClientX, e.clientX));
+          const b = pxToData(Math.max(drag.startClientX, e.clientX));
+          zoomDomain = [a, b];
+          render();
+        }
+        drag = null;
+      }
+    });
+    hit.addEventListener('pointerleave', () => { if (!drag) hideCrosshair(); });
+    hit.addEventListener('dblclick', () => resetZoom());
+    hit.addEventListener('wheel', e => {
+      e.preventDefault();
+      const focusVal = pxToData(e.clientX);
+      const [curMin, curMax] = zoomDomain || [xMin, xMax];
+      const span = curMax - curMin;
+      const factor = e.deltaY < 0 ? 0.8 : 1.25;
+      let newSpan = span * factor;
+      const minSpan = (fullXMax - fullXMin) * 0.02;
+      newSpan = Math.max(minSpan, Math.min(fullXMax - fullXMin, newSpan));
+      const ratio = (focusVal - curMin) / Math.max(1e-9, span);
+      let newMin = focusVal - ratio * newSpan;
+      let newMax = newMin + newSpan;
+      if (newMin < fullXMin) { newMin = fullXMin; newMax = newMin + newSpan; }
+      if (newMax > fullXMax) { newMax = fullXMax; newMin = newMax - newSpan; }
+      zoomDomain = (newSpan >= (fullXMax - fullXMin) * 0.999) ? null : [newMin, newMax];
+      render();
+    }, { passive: false });
+  }
+  render();
+  function update(newSeries) { opts.series = newSeries; render(); }
+  return { render, update };
+}
+
+function drawSparkline(svgId, values, color) {
+  const svg = $(svgId);
+  if (!svg || values.length < 2) { if (svg) svg.innerHTML=''; return; }
+  const W = 200, H = 28, pad = 2;
+  const xMin = 0, xMax = values.length - 1;
+  const yMin = Math.min(...values), yMax = Math.max(...values, yMin + 1e-6);
+  const X = i => pad + i/(xMax-xMin||1) * (W-2*pad);
+  const Y = v => H - pad - (v-yMin)/(yMax-yMin) * (H-2*pad);
+  const pts = values.map((v,i) => [X(i), Y(v)]);
+  const path = catmullRomPath(pts);
+  const areaPath = `${path} L${pts[pts.length-1][0]},${H} L${pts[0][0]},${H} Z`;
+  const gid = svgId + '-grad';
+  svg.innerHTML = `<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="${color}" stop-opacity="0.25"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+  </linearGradient></defs>
+  <path d="${areaPath}" fill="url(#${gid})" stroke="none"/>
+  <path d="${path}" fill="none" stroke="${color}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="${pts[pts.length-1][0]}" cy="${pts[pts.length-1][1]}" r="2.5" fill="${color}"/>`;
+}
+
+let lossChartInst = null;
+function drawLossChart(trainHist, valHist) {
+  const series = [
+    { key:'train', label:'Train loss', color:getCss('--primary'), dashed:false, area:true,
+      points: trainHist.map(r => ({x:r.tokens, y:r.loss, fmt:v=>v.toFixed(3)})) },
+    { key:'val', label:'Val loss', color:getCss('--accent'), dotsOnly:true,
+      points: valHist.map(r => ({x:r.tokens, y:r.val_loss, fmt:v=>v.toFixed(3)})) },
+  ];
+  if (lossChartInst) { lossChartInst.update(series); return; }
+  lossChartInst = makeChart({
+    svgId:'lossChart', tooltipId:'lossTooltip', legendId:'lossLegend',
+    resetBtnId:'lossZoomReset', hintId:'lossZoomHint',
+    W:900, H:320, padL:52, padR:16, padT:14, padB:30,
+    series, xTick: fmtB, yTick: v => v.toFixed(1),
+  });
+}
+
+let lastCkptRows = [];
+function renderCheckpoints(ckpts) {
+  const tbody = document.querySelector('#ckptTable tbody');
+  if (!ckpts.length) { tbody.innerHTML = '<tr><td colspan="3" class="empty">no checkpoints saved yet</td></tr>'; return; }
+  const rows = [...ckpts].sort((a,b)=>b.step-a.step).slice(0,12);
+  tbody.innerHTML = rows.map(c => `<tr><td class="n">${fmtNum(c.step)}</td><td class="n">${c.size_gb} GB</td>
+    <td>${new Date(c.mtime*1000).toLocaleString()}</td></tr>`).join('');
+}
+
+function renderEvents(events) {
+  const el = $('events');
+  if (!events || !events.length) { el.innerHTML = '<div class="empty">no events yet</div>'; return; }
+  el.innerHTML = events.map(e => `<div class="ev">${e}</div>`).join('');
+}
+
+let lastTps = null;
+async function poll() {
+  let data;
+  try {
+    const res = await fetch('/api/status', {cache: 'no-store'});
+    data = await res.json();
+  } catch (e) {
+    $('statusDot').className = 'dot stalled';
+    $('statusText').textContent = 'dashboard server unreachable';
+    return;
+  }
+  if (data.error) { $('statusText').textContent = 'error: ' + data.error; return; }
+
+  const dot = $('statusDot'), text = $('statusText'), banner = $('stallBanner');
+  if (data.stalled) {
+    dot.className = 'dot stalled'; text.textContent = `stalled (${data.log_age_seconds}s since last log line)`;
+    banner.style.display = 'flex';
+  } else {
+    dot.className = 'dot pulse'; text.textContent = 'live';
+    banner.style.display = 'none';
+  }
+
+  $('runSub').textContent = `run: ${data.run_name} | last poll: ${new Date().toLocaleTimeString()}`;
+  $('bParams').textContent = data.params_m ? data.params_m + 'M' : '226.1M';
+  $('bSeqLen').textContent = data.seq_len ? fmtNum(data.seq_len) : '32,768';
+  $('bTheta').textContent = data.rope_theta ? Math.round(data.rope_theta).toLocaleString() : '~175,000';
+  $('bFlops').textContent = data.flops_per_token ?? '6.64';
+
+  $('kStep').textContent = fmtNum(data.step);
+  $('kStepPct').textContent = `of ${fmtNum(data.total_steps)} (${(100*data.step/data.total_steps).toFixed(1)}%)`;
+  $('kTokens').textContent = fmtB(data.tokens);
+  $('kTokensPct').textContent = `of ${fmtB(data.total_tokens)}`;
+  $('kTps').textContent = fmtNum(data.avg_tok_per_s);
+  if (data.latest) {
+    $('kLoss').textContent = data.latest.loss.toFixed(3);
+    $('kPpl').textContent = `ppl ${data.latest.ppl.toFixed(1)}`;
+    $('kVram').textContent = data.latest.vram_gb.toFixed(2) + ' GB';
+    $('kMfu').textContent = `MFU ${data.latest.mfu_pct}%`;
+  }
+  if (data.latest_val) {
+    $('kValLoss').textContent = data.latest_val.val_loss.toFixed(3);
+    $('kValAt').textContent = `ppl ${data.latest_val.val_ppl.toFixed(1)} @ step ${fmtNum(data.latest_val.step)}`;
+  }
+  $('kEta').textContent = fmtDur(data.eta_seconds);
+  $('kPhase').innerHTML = `<span class="chip phase-${data.phase}">${data.phase}</span>`;
+
+  const recentLoss = data.train_history.slice(-40).map(r => r.loss);
+  drawSparkline('sparkLoss', recentLoss, getCss('--primary'));
+  const recentTps = data.train_history.slice(-40).map(r => r.tok_per_s);
+  drawSparkline('sparkTps', recentTps, getCss('--good'));
+
+  const pct = 100 * data.tokens / data.total_tokens;
+  $('progressFill').style.width = Math.min(100, pct).toFixed(2) + '%';
+  $('progressLabel').textContent = `${fmtB(data.tokens)} / ${fmtB(data.total_tokens)} (${pct.toFixed(1)}%)`;
+  const decayPct = 100 * data.decay_start_step / data.total_steps;
+  $('decayMarker').style.left = decayPct.toFixed(1) + '%';
+  document.querySelector('.marker-label').style.left = decayPct.toFixed(1) + '%';
+
+  const warmupPct = 100 * 800 / data.total_steps;
+  $('segWarmup').style.flex = warmupPct;
+  $('segStable').style.flex = Math.max(1, decayPct - warmupPct);
+  $('segDecay').style.flex = Math.max(1, 100 - decayPct);
+  ['segWarmup','segStable','segDecay'].forEach(id => $(id).classList.remove('active'));
+  $(data.phase === 'warmup' ? 'segWarmup' : data.phase === 'decay' ? 'segDecay' : 'segStable').classList.add('active');
+
+  drawLossChart(data.train_history, data.val_history);
+  renderCheckpoints(data.checkpoints);
+  renderEvents(data.events);
+}
+
+poll();
+setInterval(poll, 4000);
+</script>
+</body>
+</html>

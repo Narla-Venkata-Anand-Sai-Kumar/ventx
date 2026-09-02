@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+scripts/sync_remote_log.sh
+scripts/sync_b200_log.sh
