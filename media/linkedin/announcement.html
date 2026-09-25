@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>VenTX-100K Announcement</title>
+<!--
+  LinkedIn announcement video for VenTX-100K.
+  Every frame is a pure function of time: render(t) positions everything for t seconds.
+  Open in a browser to preview (plays in real time), or run render_video.js to export MP4.
+-->
+<style>
+  @font-face { font-family: Inter; font-weight: 400; src: url(fonts/inter-latin-400-normal.woff2) format("woff2"); }
+  @font-face { font-family: Inter; font-weight: 600; src: url(fonts/inter-latin-600-normal.woff2) format("woff2"); }
+  @font-face { font-family: Inter; font-weight: 800; src: url(fonts/inter-latin-800-normal.woff2) format("woff2"); }
+  @font-face { font-family: Mono; font-weight: 400; src: url(fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2"); }
+  @font-face { font-family: Mono; font-weight: 500; src: url(fonts/jetbrains-mono-latin-500-normal.woff2) format("woff2"); }
+
+  :root {
+    --bg: #080b12;
+    --bg2: #0e1320;
+    --ink: #eef2f8;
+    --muted: #8b95a8;
+    --faint: #2a3244;
+    --accent: #5eead4;
+    --accent-2: #38bdf8;
+    --warm: #fbbf24;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #000; }
+  #stage {
+    position: relative; width: 1080px; height: 1080px; overflow: hidden;
+    background: radial-gradient(1200px 900px at 50% 35%, var(--bg2), var(--bg));
+    color: var(--ink); font-family: Inter, sans-serif;
+  }
+  #grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(94,234,212,0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(94,234,212,0.045) 1px, transparent 1px);
+    background-size: 54px 54px;
+  }
+  #tokens { position: absolute; inset: 0; font-family: Mono; font-size: 18px; color: var(--accent); }
+  #tokens span { position: absolute; white-space: nowrap; }
+  .scene { position: absolute; inset: 0; opacity: 0; }
+  .center { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .kicker { font-family: Mono; font-weight: 500; font-size: 24px; letter-spacing: 0.32em; color: var(--accent); text-transform: uppercase; }
+  .h1 { font-weight: 800; font-size: 64px; letter-spacing: -0.02em; line-height: 1.08; }
+  .sub { font-size: 30px; color: var(--muted); line-height: 1.4; }
+  .mono { font-family: Mono; }
+  .grad { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+  /* Scene 1 */
+  #wordmark { font-weight: 800; font-size: 150px; letter-spacing: -0.04em; display: flex; }
+  #wordmark span { display: inline-block; }
+  #wm-line { height: 6px; width: 560px; margin-top: 18px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius: 3px; transform-origin: left center; }
+
+  /* Scene 2 */
+  #params { font-weight: 800; font-size: 210px; letter-spacing: -0.05em; line-height: 1; font-variant-numeric: tabular-nums; }
+  #layers { display: flex; flex-direction: column; gap: 9px; width: 620px; margin-top: 46px; }
+  #layers div { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transform-origin: left center; }
+
+  /* Scene 3 */
+  #gpu { position: relative; width: 760px; height: 300px; margin: 48px 0 40px; border-radius: 26px;
+         background: linear-gradient(160deg, #1a2233, #0f1522); border: 2px solid #2b3650; }
+  .fan { position: absolute; top: 40px; width: 220px; height: 220px; border-radius: 50%; border: 3px solid #33405c; background: #0a0e17; }
+  .fan svg { width: 100%; height: 100%; }
+  #gpu-label { position: absolute; right: 34px; bottom: -58px; font-family: Mono; font-size: 26px; color: var(--muted); }
+  #gpu-strip { position: absolute; left: 0; right: 0; top: 0; height: 8px; border-radius: 26px 26px 0 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+
+  /* Scene 4 */
+  #ctx-wrap { width: 900px; margin-top: 56px; text-align: left; }
+  #ctx-count { font-family: Mono; font-weight: 500; font-size: 92px; font-variant-numeric: tabular-nums; }
+  #ctx-count small { font-size: 34px; color: var(--muted); margin-left: 14px; }
+  #ctx-bar { position: relative; height: 34px; margin-top: 22px; border-radius: 8px; background: #121a2a; border: 1px solid #243049; }
+  #ctx-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 8px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+  #ctx-next { position: absolute; top: -1px; bottom: -1px; border: 2px dashed var(--warm); border-left: none; border-radius: 0 8px 8px 0; }
+  .tick { position: absolute; top: 46px; font-family: Mono; font-size: 20px; color: var(--muted); transform: translateX(-50%); }
+  #ctx-note { position: absolute; top: 86px; font-family: Mono; font-size: 21px; color: var(--warm); }
+  #attn { display: flex; align-items: center; gap: 44px; margin-top: 150px; }
+  #mask { display: grid; grid-template-columns: repeat(14, 16px); gap: 4px; }
+  #mask div { width: 16px; height: 16px; border-radius: 3px; background: var(--faint); }
+  #attn-text { text-align: left; font-size: 30px; line-height: 1.45; }
+
+  /* Scene 5 */
+  #specs { display: grid; grid-template-columns: repeat(2, 440px); gap: 22px; margin-top: 50px; }
+  .card { text-align: left; padding: 24px 28px; border-radius: 18px; background: rgba(20,28,44,0.85); border: 1px solid #243049; }
+  .card .v { font-family: Mono; font-weight: 500; font-size: 40px; }
+  .card .k { font-size: 22px; color: var(--muted); margin-top: 6px; }
+
+  /* Scene 6 */
+  #tok { font-weight: 800; font-size: 170px; letter-spacing: -0.05em; line-height: 1; font-variant-numeric: tabular-nums; }
+  #mix { display: flex; width: 860px; height: 70px; margin-top: 56px; border-radius: 12px; overflow: hidden; background: #121a2a; }
+  #mix-long { background: linear-gradient(90deg, var(--accent), var(--accent-2)); display: flex; align-items: center; padding-left: 22px; font-family: Mono; font-weight: 500; font-size: 28px; color: #04121a; }
+  #mix-short { background: var(--warm); display: flex; align-items: center; justify-content: center; font-family: Mono; font-weight: 500; font-size: 28px; color: #1c1300; }
+  #mix-legend { display: flex; width: 860px; justify-content: space-between; margin-top: 20px; font-size: 24px; color: var(--muted); text-align: left; }
+
+  /* Scene 7 */
+  #live { display: inline-flex; align-items: center; gap: 14px; padding: 12px 24px; border-radius: 40px; border: 1px solid #243049; background: rgba(20,28,44,0.85); font-family: Mono; font-size: 24px; color: var(--accent); letter-spacing: 0.12em; }
+  #live i { width: 14px; height: 14px; border-radius: 50%; background: var(--accent); display: inline-block; }
+  #url { margin-top: 44px; padding: 22px 30px; border-radius: 14px; background: #0c1220; border: 1px solid #243049; font-family: Mono; font-size: 27px; color: var(--ink); }
+  #url b { color: var(--accent); font-weight: 500; }
+  #byline { margin-top: 34px; font-size: 26px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="grid"></div>
+  <div id="tokens"></div>
+
+  <!-- 1. Title -->
+  <section class="scene center" id="s1">
+    <div class="kicker" id="s1-k">Introducing</div>
+    <div id="wordmark" style="margin-top:26px"></div>
+    <div id="wm-line"></div>
+    <div class="sub" id="s1-sub" style="margin-top:40px;max-width:820px">A long-context language model,<br>trained from scratch.</div>
+  </section>
+
+  <!-- 2. Parameters -->
+  <section class="scene center" id="s2">
+    <div class="kicker">Decoder-only transformer</div>
+    <div id="params" class="grad" style="margin-top:30px">0.0M</div>
+    <div class="sub" style="margin-top:6px">parameters · trained fully from scratch</div>
+    <div id="layers"></div>
+    <div class="mono" id="layers-label" style="margin-top:22px;font-size:22px;color:var(--muted)">14 layers</div>
+  </section>
+
+  <!-- 3. Hardware -->
+  <section class="scene center" id="s3">
+    <div class="h1">On a single<br><span class="grad">consumer GPU.</span></div>
+    <div id="gpu">
+      <div id="gpu-strip"></div>
+      <div class="fan" style="left:70px"><svg viewBox="-50 -50 100 100" class="blades"></svg></div>
+      <div class="fan" style="left:330px"><svg viewBox="-50 -50 100 100" class="blades"></svg></div>
+      <div style="position:absolute;right:40px;top:60px;width:130px;display:flex;flex-direction:column;gap:14px" id="vram"></div>
+      <div id="gpu-label">RTX 5060 · 8 GB</div>
+    </div>
+    <div class="sub" id="s3-sub" style="margin-top:50px;max-width:860px">Some stages on rented RTX 4090 / B200 —<br>same codebase, no changes.</div>
+  </section>
+
+  <!-- 4. Long context -->
+  <section class="scene center" id="s4">
+    <div class="kicker">Native long context</div>
+    <div class="h1" style="margin-top:22px">Not a bolted-on compromise.</div>
+    <div id="ctx-wrap">
+      <div id="ctx-count">0<small>tokens</small></div>
+      <div id="ctx-bar">
+        <div id="ctx-fill"></div>
+        <div id="ctx-next"></div>
+        <div class="tick" style="left:0%;transform:none">0</div>
+        <div class="tick" style="left:32.768%">32K</div>
+        <div class="tick" style="left:65.536%">65K</div>
+        <div class="tick" style="left:100%;transform:translateX(-100%)">100K</div>
+        <div id="ctx-note" style="left:34%">next stage: context extension →</div>
+      </div>
+    </div>
+    <div id="attn">
+      <div id="mask"></div>
+      <div id="attn-text">Every layer attends to<br><b>the full sequence.</b><br><span style="color:var(--muted);font-size:25px">No sliding windows. No local/global<br>interleaving. Dense attention.</span></div>
+    </div>
+  </section>
+
+  <!-- 5. Architecture -->
+  <section class="scene center" id="s5">
+    <div class="kicker">Architecture</div>
+    <div class="h1" style="margin-top:22px;font-size:56px">Proven design, scaled up.</div>
+    <div id="specs">
+      <div class="card"><div class="v">14 × 960</div><div class="k">layers × d_model</div></div>
+      <div class="card"><div class="v">15 / 5 heads</div><div class="k">grouped-query attention, 3:1</div></div>
+      <div class="card"><div class="v">SwiGLU</div><div class="k">3,584 FFN hidden</div></div>
+      <div class="card"><div class="v">RoPE</div><div class="k">rotary positions</div></div>
+      <div class="card"><div class="v">RMSNorm</div><div class="k">with QK-norm</div></div>
+      <div class="card"><div class="v">49,152</div><div class="k">vocab · tied embeddings</div></div>
+      <div class="card" style="grid-column:span 2"><div class="v"><span class="grad">Muon</span> + AdamW</div><div class="k">Newton–Schulz orthogonalized momentum for every 2D weight matrix</div></div>
+    </div>
+  </section>
+
+  <!-- 6. Data -->
+  <section class="scene center" id="s6">
+    <div class="kicker">Training corpus</div>
+    <div id="tok" class="grad" style="margin-top:30px">0.00B</div>
+    <div class="sub" style="margin-top:8px">tokens</div>
+    <div id="mix"><div id="mix-long">70% long-form</div><div id="mix-short">30%</div></div>
+    <div id="mix-legend">
+      <div><b style="color:var(--ink)">Books</b><br>BookCorpusOpen · Project Gutenberg</div>
+      <div style="text-align:right"><b style="color:var(--ink)">Short-form</b><br>web · edu · math · code</div>
+    </div>
+    <div class="sub" id="s6-sub" style="margin-top:50px;font-size:27px;max-width:860px">Genuinely continuous long documents —<br>not concatenated short ones.</div>
+  </section>
+
+  <!-- 7. CTA -->
+  <section class="scene center" id="s7">
+    <div id="live"><i></i>BASE PRETRAINING IN PROGRESS</div>
+    <div class="h1" style="margin-top:40px;font-size:96px">VenTX-<span class="grad">100K</span></div>
+    <div class="sub" style="margin-top:22px">Built in public. Weights published<br>as-is with every release.</div>
+    <div id="url">github.com/<b>Narla-Venkata-Anand-Sai-Kumar/ventx</b></div>
+    <div id="byline">by Narla Venkata Anand Sai Kumar</div>
+  </section>
+</div>
+
+<script>
+const DURATION = 38;
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+const easeInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const lerp = (a, b, x) => a + (b - a) * x;
+
+// Scene windows [start, end]; each fades in over 0.5s and out over 0.45s.
+const SCENES = { s1: [0, 4.4], s2: [4.4, 9.6], s3: [9.6, 14.6], s4: [14.6, 22.2], s5: [22.2, 28.2], s6: [28.2, 33.2], s7: [33.2, DURATION + 1] };
+
+function sceneAlpha(t, [a, b]) {
+  const fin = a === 0 ? 1 : easeOut(seg(t, a, a + 0.5));
+  const fout = 1 - seg(t, b - 0.45, b);
+  return Math.min(fin, fout);
+}
+// Rise-in helper: element fades in and slides up starting at time `at`.
+function rise(el, t, at, dist = 30, dur = 0.7) {
+  const p = easeOut(seg(t, at, at + dur));
+  el.style.opacity = p;
+  el.style.transform = `translateY(${(1 - p) * dist}px)`;
+}
+
+// ---------- build static DOM ----------
+const WM = "VenTX-100K";
+for (const ch of WM) { const s = document.createElement("span"); s.textContent = ch; $("wordmark").appendChild(s); }
+[...$("wordmark").children].slice(6).forEach((s) => s.classList.add("grad")); // accent "100K"
+for (let i = 0; i < 14; i++) $("layers").appendChild(document.createElement("div"));
+for (let i = 0; i < 4; i++) {
+  const d = document.createElement("div");
+  d.style.cssText = "height:30px;border-radius:5px;background:#1d2740;border:1px solid #33405c";
+  $("vram").appendChild(d);
+}
+document.querySelectorAll(".blades").forEach((svg) => {
+  let html = '<circle r="11" fill="#1d2740"/>';
+  for (let i = 0; i < 7; i++) {
+    html += `<path transform="rotate(${(i * 360) / 7})" d="M0,-10 C14,-18 22,-34 12,-45 C4,-36 -2,-22 0,-10Z" fill="#2b3a57"/>`;
+  }
+  svg.innerHTML = html;
+});
+const N = 14;
+for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+  const d = document.createElement("div"); d.dataset.r = r; d.dataset.c = c; $("mask").appendChild(d);
+}
+// deterministic pseudo-random token stream in the background
+let seed = 7;
+const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+const VOCAB = ["the", "▁long", "▁context", "▁attention", "▁model", "▁token", "▁rope", "▁layer", "▁of", "▁and", "▁gradient", "▁sequence", "▁muon", "32768", "▁norm", "▁key", "▁value", "▁query", "</s>"];
+const TOK = [];
+for (let i = 0; i < 46; i++) {
+  const s = document.createElement("span");
+  s.textContent = Array.from({ length: 3 }, () => VOCAB[Math.floor(rnd() * VOCAB.length)]).join(" ");
+  $("tokens").appendChild(s);
+  TOK.push({ el: s, x: rnd() * 1300 - 200, y: rnd() * 1080, v: 14 + rnd() * 26, a: 0.03 + rnd() * 0.06 });
+}
+
+// ---------- render(t) ----------
+function render(t) {
+  for (const [id, win] of Object.entries(SCENES)) $(id).style.opacity = sceneAlpha(t, win);
+
+  // background drift
+  for (const k of TOK) {
+    const x = ((k.x + k.v * t) % 1400) - 200;
+    k.el.style.transform = `translate(${x}px, ${k.y}px)`;
+    k.el.style.opacity = k.a;
+  }
+
+  // 1 — title
+  rise($("s1-k"), t, 0.2, 16);
+  [...$("wordmark").children].forEach((s, i) => {
+    const p = easeOut(seg(t, 0.5 + i * 0.06, 1.2 + i * 0.06));
+    s.style.opacity = p;
+    s.style.transform = `translateY(${(1 - p) * 60}px)`;
+  });
+  $("wm-line").style.transform = `scaleX(${easeInOut(seg(t, 1.3, 2.2))})`;
+  rise($("s1-sub"), t, 2.0);
+  $("s1").style.transform = `scale(${lerp(1, 1.04, seg(t, 0, 4.4))})`;
+
+  // 2 — parameters
+  const pp = easeOut(seg(t, 4.8, 6.6));
+  $("params").textContent = (226.1 * pp).toFixed(1) + "M";
+  [...$("layers").children].forEach((d, i) => {
+    const p = easeOut(seg(t, 5.6 + i * 0.12, 6.2 + i * 0.12));
+    d.style.transform = `scaleX(${p})`;
+    d.style.opacity = 0.35 + 0.65 * p;
+  });
+  rise($("layers-label"), t, 7.2, 10);
+
+  // 3 — GPU
+  document.querySelectorAll(".blades").forEach((svg, i) => {
+    const spin = t < 9.6 ? 0 : (t - 9.6) * (380 + i * 40);
+    svg.style.transform = `rotate(${spin}deg)`;
+  });
+  [...$("vram").children].forEach((d, i) => {
+    const on = seg(t, 10.6 + i * 0.35, 10.9 + i * 0.35);
+    d.style.background = on > 0.5 ? "var(--accent)" : "#1d2740";
+    d.style.boxShadow = on > 0.5 ? "0 0 18px rgba(94,234,212,0.55)" : "none";
+  });
+  rise($("gpu"), t, 10.0, 40);
+  rise($("s3-sub"), t, 11.6);
+
+  // 4 — long context (bar spans 0..100K tokens)
+  const cp = easeInOut(seg(t, 15.4, 17.6));
+  const tokens = Math.round(32768 * cp);
+  $("ctx-count").innerHTML = tokens.toLocaleString("en-US") + "<small>tokens · native</small>";
+  $("ctx-fill").style.width = 32.768 * cp + "%";
+  const np = easeOut(seg(t, 17.9, 18.9));
+  $("ctx-next").style.left = "32.768%";
+  $("ctx-next").style.width = (100 - 32.768) * np + "%";
+  $("ctx-next").style.opacity = np;
+  $("ctx-note").style.opacity = easeOut(seg(t, 18.4, 19.0));
+  rise($("attn"), t, 18.8, 30);
+  const mp = seg(t, 19.1, 20.6);
+  for (const d of $("mask").children) {
+    const r = +d.dataset.r, c = +d.dataset.c;
+    const lit = c <= r && (r + c) / (2 * N - 2) <= mp * 1.02;
+    d.style.background = lit ? `rgba(94,234,212,${0.45 + 0.55 * (c / Math.max(1, r))})` : "var(--faint)";
+    d.style.opacity = c <= r ? 1 : 0.35;
+  }
+
+  // 5 — spec cards
+  [...$("specs").children].forEach((card, i) => rise(card, t, 22.8 + i * 0.28, 26, 0.6));
+
+  // 6 — corpus
+  const tp = easeOut(seg(t, 28.6, 30.2));
+  $("tok").textContent = (4.27 * tp).toFixed(2) + "B";
+  const mx = easeInOut(seg(t, 29.4, 30.6));
+  $("mix-long").style.width = 70 * mx + "%";
+  $("mix-short").style.width = 30 * mx + "%";
+  $("mix-long").style.color = mx > 0.8 ? "#04121a" : "transparent";
+  $("mix-short").style.color = mx > 0.8 ? "#1c1300" : "transparent";
+  rise($("mix-legend"), t, 30.4, 14);
+  rise($("s6-sub"), t, 31.0);
+
+  // 7 — CTA
+  rise($("live"), t, 33.5, 16);
+  const pulse = 0.5 + 0.5 * Math.sin(t * 5);
+  $("live").querySelector("i").style.boxShadow = `0 0 ${6 + 14 * pulse}px rgba(94,234,212,${0.4 + 0.5 * pulse})`;
+  rise($("url"), t, 34.6, 20);
+  rise($("byline"), t, 35.2, 12);
+}
+
+window.DURATION = DURATION;
+window.render = render;
+
+// Live preview when opened directly in a browser (the exporter drives render() itself).
+if (!new URLSearchParams(location.search).has("export")) {
+  const t0 = performance.now();
+  const loop = () => { render(((performance.now() - t0) / 1000) % DURATION); requestAnimationFrame(loop); };
+  document.fonts.ready.then(loop);
+} else {
+  render(0);
+}
+</script>
+</body>
+</html>
