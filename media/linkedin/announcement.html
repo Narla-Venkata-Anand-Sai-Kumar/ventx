@@ -5,339 +5,284 @@
 <title>VenTX-100K Announcement</title>
 <!--
   LinkedIn announcement video for VenTX-100K.
-  Every frame is a pure function of time: render(t) positions everything for t seconds.
+  Every frame is a pure function of time: render(t) lays out the frame at t seconds.
+  Elements animate declaratively via data attributes:
+    data-at="<s>"  start time (seconds)
+    data-fx="mask" (default) text line slides up from behind a clip
+    data-fx="fade" fades in with a small rise
+    data-fx="grow" scales in horizontally from the left
   Open in a browser to preview (plays in real time), or run render_video.js to export MP4.
 -->
 <style>
+  @font-face { font-family: Inter; font-weight: 300; src: url(fonts/inter-latin-300-normal.woff2) format("woff2"); }
   @font-face { font-family: Inter; font-weight: 400; src: url(fonts/inter-latin-400-normal.woff2) format("woff2"); }
+  @font-face { font-family: Inter; font-weight: 500; src: url(fonts/inter-latin-500-normal.woff2) format("woff2"); }
   @font-face { font-family: Inter; font-weight: 600; src: url(fonts/inter-latin-600-normal.woff2) format("woff2"); }
-  @font-face { font-family: Inter; font-weight: 800; src: url(fonts/inter-latin-800-normal.woff2) format("woff2"); }
-  @font-face { font-family: Mono; font-weight: 400; src: url(fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2"); }
   @font-face { font-family: Mono; font-weight: 500; src: url(fonts/jetbrains-mono-latin-500-normal.woff2) format("woff2"); }
 
   :root {
-    --bg: #080b12;
-    --bg2: #0e1320;
-    --ink: #eef2f8;
-    --muted: #8b95a8;
-    --faint: #2a3244;
-    --accent: #5eead4;
-    --accent-2: #38bdf8;
-    --warm: #fbbf24;
+    --paper: #ffffff;
+    --ink: #0b0c0e;
+    --ink-2: #5b606b;
+    --ink-3: #9aa0ab;
+    --rule: #e4e6ea;
+    --accent: #1f3fb8;
+    --accent-soft: #b9c6ee;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { background: #000; }
+  html, body { background: #f2f3f5; }
   #stage {
     position: relative; width: 1080px; height: 1080px; overflow: hidden;
-    background: radial-gradient(1200px 900px at 50% 35%, var(--bg2), var(--bg));
-    color: var(--ink); font-family: Inter, sans-serif;
+    background: var(--paper); color: var(--ink);
+    font-family: Inter, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
-  #grid {
-    position: absolute; inset: 0;
-    background-image:
-      linear-gradient(rgba(94,234,212,0.045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(94,234,212,0.045) 1px, transparent 1px);
-    background-size: 54px 54px;
-  }
-  #tokens { position: absolute; inset: 0; font-family: Mono; font-size: 18px; color: var(--accent); }
-  #tokens span { position: absolute; white-space: nowrap; }
+
+  /* persistent chrome */
+  #chrome { position: absolute; inset: 0; opacity: 0; }
+  #brand { position: absolute; left: 96px; top: 72px; font-weight: 600; font-size: 22px; letter-spacing: -0.01em; }
+  #foot-url { position: absolute; left: 96px; bottom: 64px; font-size: 18px; color: var(--ink-3); }
+  #progress { position: absolute; left: 96px; right: 96px; bottom: 100px; height: 1px; background: var(--rule); }
+  #progress i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ink); transform-origin: left center; width: 100%; }
+
   .scene { position: absolute; inset: 0; opacity: 0; }
-  .center { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-  .kicker { font-family: Mono; font-weight: 500; font-size: 24px; letter-spacing: 0.32em; color: var(--accent); text-transform: uppercase; }
-  .h1 { font-weight: 800; font-size: 64px; letter-spacing: -0.02em; line-height: 1.08; }
-  .sub { font-size: 30px; color: var(--muted); line-height: 1.4; }
-  .mono { font-family: Mono; }
-  .grad { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .section { position: absolute; right: 96px; top: 72px; font-size: 20px; color: var(--ink-2); display: flex; gap: 14px; }
+  .section b { font-weight: 500; color: var(--accent); }
+  .body { position: absolute; left: 96px; right: 96px; top: 190px; }
 
-  /* Scene 1 */
-  #wordmark { font-weight: 800; font-size: 150px; letter-spacing: -0.04em; display: flex; }
-  #wordmark span { display: inline-block; }
-  #wm-line { height: 6px; width: 560px; margin-top: 18px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius: 3px; transform-origin: left center; }
+  .m { display: block; overflow: hidden; }          /* mask wrapper */
+  .m > span { display: block; }
+  .eyebrow { font-size: 22px; font-weight: 500; color: var(--accent); letter-spacing: 0.02em; }
+  .h { font-weight: 500; font-size: 58px; line-height: 1.12; letter-spacing: -0.028em; }
+  .lede { font-weight: 300; font-size: 34px; line-height: 1.4; letter-spacing: -0.01em; color: var(--ink); }
+  .muted { color: var(--ink-2); }
+  .big { white-space: nowrap; font-weight: 300; letter-spacing: -0.055em; line-height: 0.95; }
+  #params, #ctx, #tok { font-variant-numeric: tabular-nums; }
+  .rule { height: 1px; background: var(--rule); transform-origin: left center; }
+  .rule.ink { background: var(--ink); height: 2px; }
 
-  /* Scene 2 */
-  #params { font-weight: 800; font-size: 210px; letter-spacing: -0.05em; line-height: 1; font-variant-numeric: tabular-nums; }
-  #layers { display: flex; flex-direction: column; gap: 9px; width: 620px; margin-top: 46px; }
-  #layers div { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transform-origin: left center; }
+  /* stat row */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 64px; border-top: 1px solid var(--rule); }
+  .stat { padding-top: 26px; }
+  .stat .v { font-size: 54px; font-weight: 400; letter-spacing: -0.03em; }
+  .stat .k { font-size: 20px; color: var(--ink-2); margin-top: 8px; }
 
-  /* Scene 3 */
-  #gpu { position: relative; width: 760px; height: 300px; margin: 48px 0 40px; border-radius: 26px;
-         background: linear-gradient(160deg, #1a2233, #0f1522); border: 2px solid #2b3650; }
-  .fan { position: absolute; top: 40px; width: 220px; height: 220px; border-radius: 50%; border: 3px solid #33405c; background: #0a0e17; }
-  .fan svg { width: 100%; height: 100%; }
-  #gpu-label { position: absolute; right: 34px; bottom: -58px; font-family: Mono; font-size: 26px; color: var(--muted); }
-  #gpu-strip { position: absolute; left: 0; right: 0; top: 0; height: 8px; border-radius: 26px 26px 0 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+  /* table */
+  .row { display: grid; grid-template-columns: 290px 1fr; padding: 24px 0; border-bottom: 1px solid var(--rule); font-size: 27px; }
+  .row .k { color: var(--ink-2); font-weight: 400; }
+  .row .v { font-weight: 500; letter-spacing: -0.01em; }
+  .row .v span { color: var(--ink-2); font-weight: 400; }
 
-  /* Scene 4 */
-  #ctx-wrap { width: 900px; margin-top: 56px; text-align: left; }
-  #ctx-count { font-family: Mono; font-weight: 500; font-size: 92px; font-variant-numeric: tabular-nums; }
-  #ctx-count small { font-size: 34px; color: var(--muted); margin-left: 14px; }
-  #ctx-bar { position: relative; height: 34px; margin-top: 22px; border-radius: 8px; background: #121a2a; border: 1px solid #243049; }
-  #ctx-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 8px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
-  #ctx-next { position: absolute; top: -1px; bottom: -1px; border: 2px dashed var(--warm); border-left: none; border-radius: 0 8px 8px 0; }
-  .tick { position: absolute; top: 46px; font-family: Mono; font-size: 20px; color: var(--muted); transform: translateX(-50%); }
-  #ctx-note { position: absolute; top: 86px; font-family: Mono; font-size: 21px; color: var(--warm); }
-  #attn { display: flex; align-items: center; gap: 44px; margin-top: 150px; }
-  #mask { display: grid; grid-template-columns: repeat(14, 16px); gap: 4px; }
-  #mask div { width: 16px; height: 16px; border-radius: 3px; background: var(--faint); }
-  #attn-text { text-align: left; font-size: 30px; line-height: 1.45; }
+  /* context chart */
+  #ctx-bar { position: relative; height: 18px; margin-top: 44px; }
+  #ctx-plan { position: absolute; top: 0; bottom: 0; left: 0; border: 1.5px solid var(--accent-soft);
+              background: repeating-linear-gradient(135deg, transparent 0 7px, #e8edfa 7px 9px); transform-origin: left center; }
+  #ctx-fill { position: absolute; top: 0; bottom: 0; left: 0; background: var(--accent); }
+  .ticks { position: relative; height: 40px; margin-top: 14px; font-size: 18px; color: var(--ink-3); }
+  .ticks div { position: absolute; top: 0; transform: translateX(-50%); }
+  .ticks div::before { content: ""; position: absolute; left: 50%; top: -10px; width: 1px; height: 6px; background: var(--ink-3); }
+  .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; font-size: 22px; line-height: 1.45; }
+  .legend .sw { display: inline-block; width: 14px; height: 14px; margin-right: 12px; vertical-align: 1px; }
+  .legend b { font-weight: 500; }
 
-  /* Scene 5 */
-  #specs { display: grid; grid-template-columns: repeat(2, 440px); gap: 22px; margin-top: 50px; }
-  .card { text-align: left; padding: 24px 28px; border-radius: 18px; background: rgba(20,28,44,0.85); border: 1px solid #243049; }
-  .card .v { font-family: Mono; font-weight: 500; font-size: 40px; }
-  .card .k { font-size: 22px; color: var(--muted); margin-top: 6px; }
+  /* data mix */
+  #mix { display: flex; height: 18px; margin-top: 52px; gap: 4px; }
+  #mix-a { background: var(--accent); flex: 0 0 auto; transform-origin: left center; }
+  #mix-b { background: var(--accent-soft); flex: 0 0 auto; transform-origin: left center; }
 
-  /* Scene 6 */
-  #tok { font-weight: 800; font-size: 170px; letter-spacing: -0.05em; line-height: 1; font-variant-numeric: tabular-nums; }
-  #mix { display: flex; width: 860px; height: 70px; margin-top: 56px; border-radius: 12px; overflow: hidden; background: #121a2a; }
-  #mix-long { background: linear-gradient(90deg, var(--accent), var(--accent-2)); display: flex; align-items: center; padding-left: 22px; font-family: Mono; font-weight: 500; font-size: 28px; color: #04121a; }
-  #mix-short { background: var(--warm); display: flex; align-items: center; justify-content: center; font-family: Mono; font-weight: 500; font-size: 28px; color: #1c1300; }
-  #mix-legend { display: flex; width: 860px; justify-content: space-between; margin-top: 20px; font-size: 24px; color: var(--muted); text-align: left; }
-
-  /* Scene 7 */
-  #live { display: inline-flex; align-items: center; gap: 14px; padding: 12px 24px; border-radius: 40px; border: 1px solid #243049; background: rgba(20,28,44,0.85); font-family: Mono; font-size: 24px; color: var(--accent); letter-spacing: 0.12em; }
-  #live i { width: 14px; height: 14px; border-radius: 50%; background: var(--accent); display: inline-block; }
-  #url { margin-top: 44px; padding: 22px 30px; border-radius: 14px; background: #0c1220; border: 1px solid #243049; font-family: Mono; font-size: 27px; color: var(--ink); }
-  #url b { color: var(--accent); font-weight: 500; }
-  #byline { margin-top: 34px; font-size: 26px; color: var(--muted); }
+  /* close */
+  #status { display: inline-flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 500; color: var(--ink-2); }
+  #status i { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); display: inline-block; }
+  #url { font-family: Mono; font-weight: 500; font-size: 27px; color: var(--ink); padding-bottom: 10px; border-bottom: 2px solid var(--accent); display: inline-block; }
 </style>
 </head>
 <body>
 <div id="stage">
-  <div id="grid"></div>
-  <div id="tokens"></div>
 
-  <!-- 1. Title -->
-  <section class="scene center" id="s1">
-    <div class="kicker" id="s1-k">Introducing</div>
-    <div id="wordmark" style="margin-top:26px"></div>
-    <div id="wm-line"></div>
-    <div class="sub" id="s1-sub" style="margin-top:40px;max-width:820px">A long-context language model,<br>trained from scratch.</div>
-  </section>
+  <div id="chrome">
+    <div id="brand">VenTX-100K</div>
+    <div id="progress"><i></i></div>
+    <div id="foot-url">github.com/Narla-Venkata-Anand-Sai-Kumar/ventx</div>
+  </div>
 
-  <!-- 2. Parameters -->
-  <section class="scene center" id="s2">
-    <div class="kicker">Decoder-only transformer</div>
-    <div id="params" class="grad" style="margin-top:30px">0.0M</div>
-    <div class="sub" style="margin-top:6px">parameters · trained fully from scratch</div>
-    <div id="layers"></div>
-    <div class="mono" id="layers-label" style="margin-top:22px;font-size:22px;color:var(--muted)">14 layers</div>
-  </section>
-
-  <!-- 3. Hardware -->
-  <section class="scene center" id="s3">
-    <div class="h1">On a single<br><span class="grad">consumer GPU.</span></div>
-    <div id="gpu">
-      <div id="gpu-strip"></div>
-      <div class="fan" style="left:70px"><svg viewBox="-50 -50 100 100" class="blades"></svg></div>
-      <div class="fan" style="left:330px"><svg viewBox="-50 -50 100 100" class="blades"></svg></div>
-      <div style="position:absolute;right:40px;top:60px;width:130px;display:flex;flex-direction:column;gap:14px" id="vram"></div>
-      <div id="gpu-label">RTX 5060 · 8 GB</div>
+  <!-- Title -->
+  <section class="scene" id="s1">
+    <div class="body" style="top:250px">
+      <div class="m eyebrow" data-at="0.3"><span>Announcing</span></div>
+      <div class="m big" style="font-size:156px;font-weight:500;letter-spacing:-0.05em;margin-top:26px" data-at="0.6"><span>VenTX-100K</span></div>
+      <div class="rule ink" style="margin-top:50px" data-fx="grow" data-at="1.3"></div>
+      <div class="lede" style="margin-top:44px">
+        <div class="m" data-at="1.8"><span>A 226M-parameter language model built for</span></div>
+        <div class="m" data-at="1.95"><span>native long context, trained from scratch.</span></div>
+      </div>
+      <div class="muted" style="margin-top:56px;font-size:22px" data-fx="fade" data-at="2.6">Narla Venkata Anand Sai Kumar</div>
     </div>
-    <div class="sub" id="s3-sub" style="margin-top:50px;max-width:860px">Some stages on rented RTX 4090 / B200 —<br>same codebase, no changes.</div>
   </section>
 
-  <!-- 4. Long context -->
-  <section class="scene center" id="s4">
-    <div class="kicker">Native long context</div>
-    <div class="h1" style="margin-top:22px">Not a bolted-on compromise.</div>
-    <div id="ctx-wrap">
-      <div id="ctx-count">0<small>tokens</small></div>
-      <div id="ctx-bar">
-        <div id="ctx-fill"></div>
-        <div id="ctx-next"></div>
-        <div class="tick" style="left:0%;transform:none">0</div>
-        <div class="tick" style="left:32.768%">32K</div>
-        <div class="tick" style="left:65.536%">65K</div>
-        <div class="tick" style="left:100%;transform:translateX(-100%)">100K</div>
-        <div id="ctx-note" style="left:34%">next stage: context extension →</div>
+  <!-- 01 Model -->
+  <section class="scene" id="s2">
+    <div class="section" data-fx="fade" data-at="5.4"><b>01</b>Model</div>
+    <div class="body">
+      <div class="h">
+        <div class="m" data-at="5.5"><span>A decoder-only transformer,</span></div>
+        <div class="m muted" data-at="5.65"><span>trained fully from scratch.</span></div>
+      </div>
+      <div class="m big" style="font-size:230px;margin-top:56px" data-at="6.0"><span><span id="params" style="display:inline">0.0</span><span style="color:var(--ink-3)">M</span></span></div>
+      <div class="muted" style="font-size:24px;margin-top:10px" data-fx="fade" data-at="6.4">parameters, measured</div>
+      <div class="stats rule-top">
+        <div class="stat" data-fx="fade" data-at="7.2"><div class="v">14</div><div class="k">Layers</div></div>
+        <div class="stat" data-fx="fade" data-at="7.4"><div class="v">960</div><div class="k">Model width</div></div>
+        <div class="stat" data-fx="fade" data-at="7.6"><div class="v">15 / 5</div><div class="k">Query / KV heads</div></div>
       </div>
     </div>
-    <div id="attn">
-      <div id="mask"></div>
-      <div id="attn-text">Every layer attends to<br><b>the full sequence.</b><br><span style="color:var(--muted);font-size:25px">No sliding windows. No local/global<br>interleaving. Dense attention.</span></div>
+  </section>
+
+  <!-- 02 Context -->
+  <section class="scene" id="s3">
+    <div class="section" data-fx="fade" data-at="10.8"><b>02</b>Context</div>
+    <div class="body">
+      <div class="h">
+        <div class="m" data-at="10.9"><span>Native long context.</span></div>
+        <div class="m muted" data-at="11.05"><span>No sliding windows.</span></div>
+      </div>
+      <div class="m big" style="font-size:150px;margin-top:64px" data-at="11.4"><span><span id="ctx" style="display:inline">0</span><span style="font-size:40px;letter-spacing:-0.01em;color:var(--ink-2);margin-left:18px">tokens today</span></span></div>
+      <div id="ctx-bar"><div id="ctx-plan"></div><div id="ctx-fill"></div></div>
+      <div class="ticks" data-fx="fade" data-at="11.8">
+        <div style="left:0;transform:none">0</div>
+        <div style="left:32.768%">32K</div>
+        <div style="left:65.536%">65K</div>
+        <div style="left:100%;transform:translateX(-100%)">100K</div>
+      </div>
+      <div class="legend">
+        <div data-fx="fade" data-at="13.6"><span class="sw" style="background:var(--accent)"></span><b>Current</b><br><span class="muted">Dense attention over the full<br>sequence in every layer</span></div>
+        <div data-fx="fade" data-at="14.2"><span class="sw" style="border:1.5px solid var(--accent-soft);background:#e8edfa"></span><b>Next stage</b><br><span class="muted">Context extension toward<br>65,536–100,000 tokens</span></div>
+      </div>
     </div>
   </section>
 
-  <!-- 5. Architecture -->
-  <section class="scene center" id="s5">
-    <div class="kicker">Architecture</div>
-    <div class="h1" style="margin-top:22px;font-size:56px">Proven design, scaled up.</div>
-    <div id="specs">
-      <div class="card"><div class="v">14 × 960</div><div class="k">layers × d_model</div></div>
-      <div class="card"><div class="v">15 / 5 heads</div><div class="k">grouped-query attention, 3:1</div></div>
-      <div class="card"><div class="v">SwiGLU</div><div class="k">3,584 FFN hidden</div></div>
-      <div class="card"><div class="v">RoPE</div><div class="k">rotary positions</div></div>
-      <div class="card"><div class="v">RMSNorm</div><div class="k">with QK-norm</div></div>
-      <div class="card"><div class="v">49,152</div><div class="k">vocab · tied embeddings</div></div>
-      <div class="card" style="grid-column:span 2"><div class="v"><span class="grad">Muon</span> + AdamW</div><div class="k">Newton–Schulz orthogonalized momentum for every 2D weight matrix</div></div>
+  <!-- 03 Architecture -->
+  <section class="scene" id="s4">
+    <div class="section" data-fx="fade" data-at="18.0"><b>03</b>Architecture</div>
+    <div class="body">
+      <div class="h">
+        <div class="m" data-at="18.1"><span>A proven design,</span></div>
+        <div class="m muted" data-at="18.25"><span>scaled up.</span></div>
+      </div>
+      <div style="margin-top:48px;border-top:1px solid var(--ink)">
+        <div class="row" data-fx="fade" data-at="18.7"><div class="k">Attention</div><div class="v">Grouped-query <span>· 15 query / 5 KV heads</span></div></div>
+        <div class="row" data-fx="fade" data-at="18.95"><div class="k">Feed-forward</div><div class="v">SwiGLU <span>· 3,584 hidden</span></div></div>
+        <div class="row" data-fx="fade" data-at="19.2"><div class="k">Positions</div><div class="v">RoPE</div></div>
+        <div class="row" data-fx="fade" data-at="19.45"><div class="k">Normalization</div><div class="v">RMSNorm <span>· with QK-norm</span></div></div>
+        <div class="row" data-fx="fade" data-at="19.7"><div class="k">Embeddings</div><div class="v">Tied <span>· 49,152-token vocabulary</span></div></div>
+        <div class="row" data-fx="fade" data-at="19.95"><div class="k">Optimizer</div><div class="v">Muon <span>· AdamW for embeddings and norms</span></div></div>
+      </div>
     </div>
   </section>
 
-  <!-- 6. Data -->
-  <section class="scene center" id="s6">
-    <div class="kicker">Training corpus</div>
-    <div id="tok" class="grad" style="margin-top:30px">0.00B</div>
-    <div class="sub" style="margin-top:8px">tokens</div>
-    <div id="mix"><div id="mix-long">70% long-form</div><div id="mix-short">30%</div></div>
-    <div id="mix-legend">
-      <div><b style="color:var(--ink)">Books</b><br>BookCorpusOpen · Project Gutenberg</div>
-      <div style="text-align:right"><b style="color:var(--ink)">Short-form</b><br>web · edu · math · code</div>
+  <!-- 04 Data -->
+  <section class="scene" id="s5">
+    <div class="section" data-fx="fade" data-at="24.4"><b>04</b>Data</div>
+    <div class="body">
+      <div class="h">
+        <div class="m" data-at="24.5"><span>Trained on genuinely</span></div>
+        <div class="m muted" data-at="24.65"><span>long documents.</span></div>
+      </div>
+      <div class="m big" style="font-size:230px;margin-top:56px" data-at="25.0"><span><span id="tok" style="display:inline">0.00</span><span style="color:var(--ink-3)">B</span></span></div>
+      <div class="muted" style="font-size:24px;margin-top:10px" data-fx="fade" data-at="25.4">tokens in the training corpus</div>
+      <div id="mix"><div id="mix-a"></div><div id="mix-b"></div></div>
+      <div class="legend" style="grid-template-columns:70% 1fr;gap:0">
+        <div data-fx="fade" data-at="26.6"><b>70%&nbsp; Long-form</b><br><span class="muted">BookCorpusOpen, Project Gutenberg</span></div>
+        <div data-fx="fade" data-at="26.9"><b>30%&nbsp; Short-form</b><br><span class="muted">Web, edu, math, code</span></div>
+      </div>
     </div>
-    <div class="sub" id="s6-sub" style="margin-top:50px;font-size:27px;max-width:860px">Genuinely continuous long documents —<br>not concatenated short ones.</div>
   </section>
 
-  <!-- 7. CTA -->
-  <section class="scene center" id="s7">
-    <div id="live"><i></i>BASE PRETRAINING IN PROGRESS</div>
-    <div class="h1" style="margin-top:40px;font-size:96px">VenTX-<span class="grad">100K</span></div>
-    <div class="sub" style="margin-top:22px">Built in public. Weights published<br>as-is with every release.</div>
-    <div id="url">github.com/<b>Narla-Venkata-Anand-Sai-Kumar/ventx</b></div>
-    <div id="byline">by Narla Venkata Anand Sai Kumar</div>
+  <!-- 05 Compute -->
+  <section class="scene" id="s6">
+    <div class="section" data-fx="fade" data-at="29.8"><b>05</b>Compute</div>
+    <div class="body">
+      <div class="h">
+        <div class="m" data-at="29.9"><span>Developed on a single</span></div>
+        <div class="m muted" data-at="30.05"><span>consumer GPU.</span></div>
+      </div>
+      <div class="m big" style="font-size:150px;margin-top:64px" data-at="30.4"><span>8 GB</span></div>
+      <div class="muted" style="font-size:24px;margin-top:14px" data-fx="fade" data-at="30.8">of VRAM on an NVIDIA RTX 5060</div>
+      <div style="margin-top:56px;border-top:1px solid var(--ink)">
+        <div class="row" data-fx="fade" data-at="31.1"><div class="k">Primary</div><div class="v">RTX 5060 <span>· 8 GB</span></div></div>
+        <div class="row" data-fx="fade" data-at="31.35"><div class="k">Selected stages</div><div class="v">Rented RTX 4090 and B200</div></div>
+        <div class="row" data-fx="fade" data-at="31.6"><div class="k">Codebase</div><div class="v">Portable <span>· runs unchanged on each GPU</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Close -->
+  <section class="scene" id="s7">
+    <div class="body" style="top:285px">
+      <div id="status" data-fx="fade" data-at="34.4"><i></i>Base pretraining in progress</div>
+      <div class="m big" style="font-size:150px;font-weight:500;letter-spacing:-0.05em;margin-top:36px" data-at="34.6"><span>VenTX-100K</span></div>
+      <div class="lede" style="margin-top:40px">
+        <div class="m" data-at="35.1"><span>Built in public. Weights are published</span></div>
+        <div class="m" data-at="35.25"><span>as-is with every release.</span></div>
+      </div>
+      <div style="margin-top:64px" data-fx="fade" data-at="35.9"><div id="url">github.com/Narla-Venkata-Anand-Sai-Kumar/ventx</div></div>
+      <div class="muted" style="margin-top:40px;font-size:22px" data-fx="fade" data-at="36.3">Narla Venkata Anand Sai Kumar</div>
+    </div>
   </section>
 </div>
 
 <script>
-const DURATION = 38;
+const DURATION = 40;
 const $ = (id) => document.getElementById(id);
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const seg = (t, a, b) => clamp((t - a) / (b - a));
-const easeOut = (x) => 1 - Math.pow(1 - x, 3);
-const easeInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
-const lerp = (a, b, x) => a + (b - a) * x;
+const expo = (x) => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * x));
+const inOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 
-// Scene windows [start, end]; each fades in over 0.5s and out over 0.45s.
-const SCENES = { s1: [0, 4.4], s2: [4.4, 9.6], s3: [9.6, 14.6], s4: [14.6, 22.2], s5: [22.2, 28.2], s6: [28.2, 33.2], s7: [33.2, DURATION + 1] };
+// Scene windows [start, end]. Scenes fade in 0.5s and out 0.5s (with a slight lift).
+const SCENES = { s1: [0, 5.2], s2: [5.2, 10.6], s3: [10.6, 17.8], s4: [17.8, 24.2], s5: [24.2, 29.6], s6: [29.6, 34.0], s7: [34.0, DURATION + 1] };
 
-function sceneAlpha(t, [a, b]) {
-  const fin = a === 0 ? 1 : easeOut(seg(t, a, a + 0.5));
-  const fout = 1 - seg(t, b - 0.45, b);
-  return Math.min(fin, fout);
-}
-// Rise-in helper: element fades in and slides up starting at time `at`.
-function rise(el, t, at, dist = 30, dur = 0.7) {
-  const p = easeOut(seg(t, at, at + dur));
-  el.style.opacity = p;
-  el.style.transform = `translateY(${(1 - p) * dist}px)`;
-}
+const animated = [...document.querySelectorAll("[data-at]")].map((el) => ({
+  el, at: +el.dataset.at, fx: el.dataset.fx || "mask", inner: el.firstElementChild,
+}));
 
-// ---------- build static DOM ----------
-const WM = "VenTX-100K";
-for (const ch of WM) { const s = document.createElement("span"); s.textContent = ch; $("wordmark").appendChild(s); }
-[...$("wordmark").children].slice(6).forEach((s) => s.classList.add("grad")); // accent "100K"
-for (let i = 0; i < 14; i++) $("layers").appendChild(document.createElement("div"));
-for (let i = 0; i < 4; i++) {
-  const d = document.createElement("div");
-  d.style.cssText = "height:30px;border-radius:5px;background:#1d2740;border:1px solid #33405c";
-  $("vram").appendChild(d);
-}
-document.querySelectorAll(".blades").forEach((svg) => {
-  let html = '<circle r="11" fill="#1d2740"/>';
-  for (let i = 0; i < 7; i++) {
-    html += `<path transform="rotate(${(i * 360) / 7})" d="M0,-10 C14,-18 22,-34 12,-45 C4,-36 -2,-22 0,-10Z" fill="#2b3a57"/>`;
-  }
-  svg.innerHTML = html;
-});
-const N = 14;
-for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
-  const d = document.createElement("div"); d.dataset.r = r; d.dataset.c = c; $("mask").appendChild(d);
-}
-// deterministic pseudo-random token stream in the background
-let seed = 7;
-const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-const VOCAB = ["the", "▁long", "▁context", "▁attention", "▁model", "▁token", "▁rope", "▁layer", "▁of", "▁and", "▁gradient", "▁sequence", "▁muon", "32768", "▁norm", "▁key", "▁value", "▁query", "</s>"];
-const TOK = [];
-for (let i = 0; i < 46; i++) {
-  const s = document.createElement("span");
-  s.textContent = Array.from({ length: 3 }, () => VOCAB[Math.floor(rnd() * VOCAB.length)]).join(" ");
-  $("tokens").appendChild(s);
-  TOK.push({ el: s, x: rnd() * 1300 - 200, y: rnd() * 1080, v: 14 + rnd() * 26, a: 0.03 + rnd() * 0.06 });
-}
-
-// ---------- render(t) ----------
 function render(t) {
-  for (const [id, win] of Object.entries(SCENES)) $(id).style.opacity = sceneAlpha(t, win);
-
-  // background drift
-  for (const k of TOK) {
-    const x = ((k.x + k.v * t) % 1400) - 200;
-    k.el.style.transform = `translate(${x}px, ${k.y}px)`;
-    k.el.style.opacity = k.a;
+  for (const [id, [a, b]] of Object.entries(SCENES)) {
+    const fin = a === 0 ? 1 : inOut(seg(t, a, a + 0.5));
+    const fout = seg(t, b - 0.5, b);
+    const el = $(id);
+    el.style.opacity = Math.min(fin, 1 - fout);
+    el.style.transform = `translateY(${-24 * inOut(fout)}px)`;
   }
 
-  // 1 — title
-  rise($("s1-k"), t, 0.2, 16);
-  [...$("wordmark").children].forEach((s, i) => {
-    const p = easeOut(seg(t, 0.5 + i * 0.06, 1.2 + i * 0.06));
-    s.style.opacity = p;
-    s.style.transform = `translateY(${(1 - p) * 60}px)`;
-  });
-  $("wm-line").style.transform = `scaleX(${easeInOut(seg(t, 1.3, 2.2))})`;
-  rise($("s1-sub"), t, 2.0);
-  $("s1").style.transform = `scale(${lerp(1, 1.04, seg(t, 0, 4.4))})`;
+  for (const { el, at, fx, inner } of animated) {
+    const p = expo(seg(t, at, at + 1.1));
+    if (fx === "mask") inner.style.transform = `translateY(${(1 - p) * 105}%)`;
+    else if (fx === "grow") el.style.transform = `scaleX(${inOut(seg(t, at, at + 1.0))})`;
+    else { el.style.opacity = p; el.style.transform = `translateY(${(1 - p) * 14}px)`; }
+  }
 
-  // 2 — parameters
-  const pp = easeOut(seg(t, 4.8, 6.6));
-  $("params").textContent = (226.1 * pp).toFixed(1) + "M";
-  [...$("layers").children].forEach((d, i) => {
-    const p = easeOut(seg(t, 5.6 + i * 0.12, 6.2 + i * 0.12));
-    d.style.transform = `scaleX(${p})`;
-    d.style.opacity = 0.35 + 0.65 * p;
-  });
-  rise($("layers-label"), t, 7.2, 10);
+  // chrome: visible through the numbered sections
+  $("chrome").style.opacity = Math.min(inOut(seg(t, 5.2, 5.8)), 1 - seg(t, 33.5, 34.0));
+  $("progress").firstElementChild.style.transform = `scaleX(${seg(t, 5.2, 34.0)})`;
 
-  // 3 — GPU
-  document.querySelectorAll(".blades").forEach((svg, i) => {
-    const spin = t < 9.6 ? 0 : (t - 9.6) * (380 + i * 40);
-    svg.style.transform = `rotate(${spin}deg)`;
-  });
-  [...$("vram").children].forEach((d, i) => {
-    const on = seg(t, 10.6 + i * 0.35, 10.9 + i * 0.35);
-    d.style.background = on > 0.5 ? "var(--accent)" : "#1d2740";
-    d.style.boxShadow = on > 0.5 ? "0 0 18px rgba(94,234,212,0.55)" : "none";
-  });
-  rise($("gpu"), t, 10.0, 40);
-  rise($("s3-sub"), t, 11.6);
-
-  // 4 — long context (bar spans 0..100K tokens)
-  const cp = easeInOut(seg(t, 15.4, 17.6));
-  const tokens = Math.round(32768 * cp);
-  $("ctx-count").innerHTML = tokens.toLocaleString("en-US") + "<small>tokens · native</small>";
+  // counters
+  $("params").textContent = (226.1 * expo(seg(t, 6.0, 7.8))).toFixed(1);
+  const cp = inOut(seg(t, 11.9, 13.5));
+  $("ctx").textContent = Math.round(32768 * cp).toLocaleString("en-US");
   $("ctx-fill").style.width = 32.768 * cp + "%";
-  const np = easeOut(seg(t, 17.9, 18.9));
-  $("ctx-next").style.left = "32.768%";
-  $("ctx-next").style.width = (100 - 32.768) * np + "%";
-  $("ctx-next").style.opacity = np;
-  $("ctx-note").style.opacity = easeOut(seg(t, 18.4, 19.0));
-  rise($("attn"), t, 18.8, 30);
-  const mp = seg(t, 19.1, 20.6);
-  for (const d of $("mask").children) {
-    const r = +d.dataset.r, c = +d.dataset.c;
-    const lit = c <= r && (r + c) / (2 * N - 2) <= mp * 1.02;
-    d.style.background = lit ? `rgba(94,234,212,${0.45 + 0.55 * (c / Math.max(1, r))})` : "var(--faint)";
-    d.style.opacity = c <= r ? 1 : 0.35;
-  }
+  $("ctx-plan").style.width = "100%";
+  $("ctx-plan").style.transform = `scaleX(${inOut(seg(t, 11.7, 12.6))})`;
+  $("ctx-plan").style.opacity = seg(t, 11.7, 11.9);
+  $("tok").textContent = (4.27 * expo(seg(t, 25.0, 26.6))).toFixed(2);
+  const mx = inOut(seg(t, 25.8, 26.9));
+  $("mix-a").style.width = "calc(70% - 2px)";
+  $("mix-b").style.width = "calc(30% - 2px)";
+  $("mix-a").style.transform = `scaleX(${mx})`;
+  $("mix-b").style.transform = `scaleX(${inOut(seg(t, 26.3, 27.2))})`;
 
-  // 5 — spec cards
-  [...$("specs").children].forEach((card, i) => rise(card, t, 22.8 + i * 0.28, 26, 0.6));
-
-  // 6 — corpus
-  const tp = easeOut(seg(t, 28.6, 30.2));
-  $("tok").textContent = (4.27 * tp).toFixed(2) + "B";
-  const mx = easeInOut(seg(t, 29.4, 30.6));
-  $("mix-long").style.width = 70 * mx + "%";
-  $("mix-short").style.width = 30 * mx + "%";
-  $("mix-long").style.color = mx > 0.8 ? "#04121a" : "transparent";
-  $("mix-short").style.color = mx > 0.8 ? "#1c1300" : "transparent";
-  rise($("mix-legend"), t, 30.4, 14);
-  rise($("s6-sub"), t, 31.0);
-
-  // 7 — CTA
-  rise($("live"), t, 33.5, 16);
-  const pulse = 0.5 + 0.5 * Math.sin(t * 5);
-  $("live").querySelector("i").style.boxShadow = `0 0 ${6 + 14 * pulse}px rgba(94,234,212,${0.4 + 0.5 * pulse})`;
-  rise($("url"), t, 34.6, 20);
-  rise($("byline"), t, 35.2, 12);
+  // status dot: slow, subtle pulse
+  const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+  $("status").firstElementChild.style.boxShadow = `0 0 0 ${2 + 5 * pulse}px rgba(31,63,184,${0.18 - 0.12 * pulse})`;
 }
 
 window.DURATION = DURATION;
